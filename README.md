@@ -1,5 +1,5 @@
 ```markdown
-# 🖥️ Fake Music Store - Backend API (Task #5)
+# 🖥️ Fake Music Store - Backend API 
 
 This is the server-side REST API for the Fake Music Store application. It handles advanced seed-based pseudo-random data generation with structural constraints to ensure total data integrity.
 
@@ -18,17 +18,13 @@ This is the server-side REST API for the Fake Music Store application. It handle
 
 ## 🚀 How to Run Locally
 
-1. Navigate to the server directory:
-   Bash
-   cd server
-
-2. Install the necessary server packages:
+1. Install the necessary server packages:
 Bash
 npm install
 
-3. Spin up the Node/Express server:
+2. Spin up the Node/Express server:
 Bash
 npm start
 
-4. The local API server will activate and listen for incoming frontend requests at
+34. The local API server will activate and listen for incoming frontend requests at
 http://localhost:5005.
