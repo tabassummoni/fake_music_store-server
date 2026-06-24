@@ -1,10 +1,13 @@
-import { Faker, en, de } from '@faker-js/faker';
+import { Faker, en, de, uk } from '@faker-js/faker';
 import seedrandom from 'seedrandom';
-
+import { localeData } from '../data/locales.js';
+import { generateSongWave } from './audioGenerator.js';
+import { generateMusicAndCoverMeta } from './musicCoverGenerator.js';
 
 const fakers = {
   en: new Faker({ locale: [en] }),
-  de: new Faker({ locale: [de] })
+  de: new Faker({ locale: [de] }),
+  uk: new Faker({ locale: [uk] })
 };
 
 const fallbackFaker = fakers.en;
@@ -17,7 +20,6 @@ const safeCall = (faker, fn) => {
   }
 };
 
-
 const calculateLikes = (avgLikes, likesRng) => {
   const baseLikes = Math.floor(avgLikes);
   const remainder = avgLikes - baseLikes;
@@ -27,57 +29,54 @@ const calculateLikes = (avgLikes, likesRng) => {
 export const generateSongsBatch = (locale, userSeed, page, avgLikes) => {
   const currentFaker = fakers[locale] || fakers['en'];
 
-
-  const combinedSeed = `${userSeed}-${page * 13 + 7}`;
+  const combinedSeed = `${userSeed}-${page * 1103515245 + 12345}`;
   const mainRng = seedrandom(combinedSeed);
-  
-  const batchSize = 20; 
+
+  const batchSize = 20;
   const songs = [];
 
   for (let i = 0; i < batchSize; i++) {
     const sequenceIndex = (page - 1) * batchSize + i + 1;
-
-    
     const songSongSeed = Math.abs(mainRng.int32());
 
-    
     const songMetadataRng = seedrandom(`metadata-${songSongSeed}`);
-    
-    
     const currentFakerSeed = Math.abs(songMetadataRng.int32());
     currentFaker.seed(currentFakerSeed);
     fallbackFaker.seed(currentFakerSeed);
 
-    const isSingle = songMetadataRng() > 0.6; 
-
+    const isSingle = songMetadataRng() > 0.75;
+    const localeConfig = localeData[locale] || localeData.en;
+    
     const artist = songMetadataRng() > 0.4
-      ? safeCall(currentFaker, (f) => f.person.fullName())
-      : `${safeCall(currentFaker, (f) => f.word.adjective())} ${safeCall(currentFaker, (f) => f.word.noun())}`;
-      
-    const title = safeCall(currentFaker, (f) => f.music.songName());
-    
-    const albumTitle = isSingle
-      ? 'Single'
-      : `${safeCall(currentFaker, (f) => f.word.noun())} ${safeCall(currentFaker, (f) => f.word.adjective())}`;
-      
-    const genre = safeCall(currentFaker, (f) => f.music.genre());
+      ? generateArtist(currentFaker, localeConfig, songMetadataRng)
+      : generateBand(currentFaker, localeConfig, songMetadataRng);
 
-    
-    
+    const title = generateTitle(currentFaker, localeConfig, songMetadataRng);
+
+    const albumTitle = isSingle
+      ? (locale === 'uk' ? 'Сингл' : 'Single')
+      : generateAlbumTitle(currentFaker, localeConfig, songMetadataRng);
+
+    const genre = localeConfig.genres[Math.floor(songMetadataRng() * localeConfig.genres.length)];
+
     const reviewsAndLikesRng = seedrandom(`review-like-${songSongSeed}`);
-    
-    
     const reviewFakerSeed = Math.abs(reviewsAndLikesRng.int32());
     currentFaker.seed(reviewFakerSeed);
     fallbackFaker.seed(reviewFakerSeed);
 
-    const reviewText = `${safeCall(currentFaker, (f) => f.word.adjective())} track. ${safeCall(currentFaker, (f) => f.lorem.sentence())}`;
-
-    
+    const reviewText = generateReview(currentFaker, locale, reviewsAndLikesRng);
     const likes = calculateLikes(avgLikes, reviewsAndLikesRng);
 
+    const meta = generateMusicAndCoverMeta(songSongSeed);
+
+    const songBuffer = generateSongWave(songSongSeed);
+    
+    // 👇 ফিক্সড: খাঁটি নোড বাফারে রূপান্তর করে বেস-৬৪ করা হয়েছে যাতে ব্রাউজার সোর্স ক্র্যাশ না হয়
+    const audioBase64 = Buffer.from(songBuffer).toString('base64');
+    const audioUrl = `data:audio/wav;base64,${audioBase64}`;
+
     songs.push({
-      id: `${combinedSeed}-${i}`,
+      id: `${userSeed}-${page}-${i}`,
       sequenceIndex,
       title,
       artist,
@@ -85,9 +84,37 @@ export const generateSongsBatch = (locale, userSeed, page, avgLikes) => {
       genre,
       likes,
       reviewText,
-      songSeed: songSongSeed 
+      songSeed: songSongSeed,
+      coverProps: meta.coverProps,
+      audioProps: { selectedTrack: audioUrl }
     });
   }
 
   return songs;
+};
+
+const generateArtist = (faker, locale, rng) => {
+  const formatIndex = Math.floor(rng() * locale.artistFormats.length);
+  const format = locale.artistFormats[formatIndex];
+
+  if (format === '{bandName}') {
+    return safeCall(faker, (f) => f.music.genre()) + ' ' + locale.bandLiteral;
+  }
+  return safeCall(faker, (f) => f.person.firstName()) + ' ' + safeCall(faker, (f) => f.person.lastName());
+};
+
+const generateBand = (faker, locale, rng) => {
+  return safeCall(faker, (f) => f.word.adjective()) + ' ' + locale.bandLiteral;
+};
+
+const generateTitle = (faker, locale, rng) => {
+  return safeCall(faker, (f) => f.music.songName());
+};
+
+const generateAlbumTitle = (faker, locale, rng) => {
+  return safeCall(faker, (f) => f.word.noun()) + ' ' + safeCall(faker, (f) => f.word.adjective());
+};
+
+const generateReview = (faker, locale, rng) => {
+  return safeCall(faker, (f) => f.lorem.paragraph(1));
 };
