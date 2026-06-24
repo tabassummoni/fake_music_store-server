@@ -71,7 +71,6 @@ export const generateSongsBatch = (locale, userSeed, page, avgLikes) => {
 
     const songBuffer = generateSongWave(songSongSeed);
     
-    // 👇 ফিক্সড: খাঁটি নোড বাফারে রূপান্তর করে বেস-৬৪ করা হয়েছে যাতে ব্রাউজার সোর্স ক্র্যাশ না হয়
     const audioBase64 = Buffer.from(songBuffer).toString('base64');
     const audioUrl = `data:audio/wav;base64,${audioBase64}`;
 
