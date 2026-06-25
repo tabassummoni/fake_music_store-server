@@ -1,7 +1,6 @@
 import { Faker, en, de, uk } from '@faker-js/faker';
 import seedrandom from 'seedrandom';
 import { localeData } from '../data/locales.js';
-import { generateSongWave } from './audioGenerator.js';
 import { generateMusicAndCoverMeta } from './musicCoverGenerator.js';
 
 const fakers = {
@@ -68,11 +67,7 @@ export const generateSongsBatch = (locale, userSeed, page, avgLikes) => {
     const likes = calculateLikes(avgLikes, reviewsAndLikesRng);
 
     const meta = generateMusicAndCoverMeta(songSongSeed);
-
-    const songBuffer = generateSongWave(songSongSeed);
-    
-    const audioBase64 = Buffer.from(songBuffer).toString('base64');
-    const audioUrl = `data:audio/wav;base64,${audioBase64}`;
+    const audioUrl = `/api/songs/${songSongSeed}/audio`;
 
     songs.push({
       id: `${userSeed}-${page}-${i}`,

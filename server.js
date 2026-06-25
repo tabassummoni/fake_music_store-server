@@ -36,12 +36,18 @@ app.get('/api/songs', (req, res) => {
 
 app.get('/api/songs/:songSeed/audio', (req, res) => {
   try {
-    const { songSeed } = req.params;
-    const songBuffer = generateSongWave(songSeed, 5);
-    const audioBase64 = Buffer.from(songBuffer).toString('base64');
-    res.status(200).json({ audioUrl: `data:audio/wav;base64,${audioBase64}` });
+    const { songSeed } = req.params;    
+    const audioBuffer = generateSongWave(songSeed, 180);
+
+    res.writeHead(200, {
+      'Content-Type': 'audio/wav',
+      'Content-Length': audioBuffer.length,
+      'Accept-Ranges': 'bytes'
+    });
+    res.end(audioBuffer);
   } catch (error) {
-    res.status(500).json({ success: false });
+    console.error('Playback streaming error:', error);
+    res.status(500).send('Internal Server Error');
   }
 });
 
